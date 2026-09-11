@@ -66,6 +66,7 @@ public class RequestLoggingFilter implements GlobalFilter, Ordered {
         var mutatedRequest = exchange.getRequest().mutate()
                 .header(ID_HEADER_NAME, requestId)
                 .build();
+
         exchange.getResponse().getHeaders().add(ID_HEADER_NAME, requestId);
 
         var requestLogBuilder = RequestLog.builder()

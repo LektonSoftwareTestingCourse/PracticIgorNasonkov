@@ -1,0 +1,42 @@
+# =============================================================================
+# PICT-модель: Card Management Service (CRUD, генерация, резервирование)
+# Практика 2, артефакт 2 — ядро (Card-Management)
+# Источник: tz/05-card-management.md, docs/api-spec.md
+# =============================================================================
+# Каждый параметр — класс эквивалентности, выделенный по требованиям.
+# Требования к модели: не менее шести параметров, по 2–4 значения на параметр,
+# обязательные ограничения, покрытие каждой пары значений на выходе.
+# Каждая строка сгенерированного набора (cases-card-management.txt) —
+# заготовка тест-кейса.
+# -----------------------------------------------------------------------------
+
+# Операции, каждая соответствует одному эндпоинту (1 строка → 1 тест-кейс).
+# list (GET /api/cards) и delete (DELETE /api/cards/{pan}) покрыты в разделе
+# классов эквивалентности test-design.md (TC-CM-13…17, TC-CM-21…22).
+operation:        create, get, patch, reserve
+pan_validity:     valid_luhn, invalid_luhn, wrong_length, non_numeric
+expiry_date:      future, current_month, expired, malformed
+card_status:      ACTIVE, INACTIVE, BLOCKED, EXPIRED
+deleted:          no, yes
+currency_code:    valid, unknown, short, n_a
+daily_limit:      positive, zero, negative, n_a
+reserve_amount:   n_a, ok, insufficient_balance, non_positive
+
+# --- Ограничения модели (constraints) ---------------------------------------
+# Сумма резервирования применима только к операции reserve.
+IF [operation] <> "reserve" THEN [reserve_amount] = "n_a";
+IF [operation] = "reserve" THEN [reserve_amount] <> "n_a";
+# При создании карты PAN генерируется сервисом (bin + 9 цифр + цифра Луны),
+# поэтому на входе операции create PAN всегда корректен по Луне.
+IF [operation] = "create" THEN [pan_validity] = "valid_luhn";
+# Создание новой карты: карта не удалена, статус присваивает сервис (ACTIVE),
+# срок действия генерируется как «текущая дата + 3 года».
+IF [operation] = "create" THEN [deleted] = "no";
+IF [operation] = "create" THEN [card_status] = "ACTIVE";
+IF [operation] = "create" THEN [expiry_date] = "future";
+# Тело запроса с полями валюты и лимита передаётся только при create и patch.
+IF [operation] = "create" THEN [currency_code] <> "n_a" AND [daily_limit] <> "n_a";
+IF [operation] = "patch" THEN [currency_code] <> "n_a" AND [daily_limit] <> "n_a";
+# При get и reserve тела с валютой и лимитом нет — это свойства карты.
+IF [operation] = "get" THEN [currency_code] = "n_a" AND [daily_limit] = "n_a";
+IF [operation] = "reserve" THEN [currency_code] = "n_a" AND [daily_limit] = "n_a";

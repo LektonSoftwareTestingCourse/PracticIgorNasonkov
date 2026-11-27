@@ -22,8 +22,6 @@ flowchart LR
     NOTIFY["Notification: CardEventListener"]
     CARDDLX["direct DLX: smp.card-events.dlx"]
     CARDDLQ["card-notifications-dlq: TTL 60000 ms"]
-    CONFIRM["GAP: нет ожидания publisher confirm 2s"]
-    RETRY["Декларация x-max-delivery=3; consumer retry не настроен явно"]
 
     SW -.->|async AMQP: transaction.log| TXEX
     TXEX -.->|binding: transaction.log| TXQ
@@ -41,11 +39,6 @@ flowchart LR
     NOTIFY -->|sync JPA/JDBC: notification| DB
     CARDQ -.->|dead letter: key card-notifications| CARDDLX
     CARDDLX -.->|binding: card-notifications| CARDDLQ
-
-    CONFIRM --- SW
-    CONFIRM --- PROCESSOR
-    RETRY --- TXQ
-    RETRY --- CARDQ
 ```
 
 Сплошные стрелки — локальные вызовы / sync JDBC (подписаны отдельно); пунктирные — async AMQP или маршрутизация внутри брокера. Обе DLQ диагностические: TTL 60 секунд задан **на DLQ**, не как задержка retry. Обратной привязки DLQ → основная очередь в коде нет.
